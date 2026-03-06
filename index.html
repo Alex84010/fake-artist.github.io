@@ -877,25 +877,30 @@ function fullReset(del=false){
 }
 window.resetGame=()=>fullReset(true);
 
+
 // ─── BOOT ────────────────────────────────────────────────
 async function boot(){
-  setStatus('Connexion...',false);
-  try{await get(ref(db,'fa2'));setStatus('Système en ligne',true);}
-  catch(e){setStatus('Erreur Firebase: '+e.message,false,true);showOnly('lobby-screen');return;}
-  const saved=loadLS();
-  if(saved?.roomId){
-    try{
-      const snap=await get(ref(db,`fa2/${saved.roomId}`));
-      if(snap.exists()&&snap.val().players?.[saved.myId]){
-        roomId=saved.roomId;myId=saved.myId;myName=saved.myName;isHost=saved.isHost;
-        toast('Session restaurée');attachListener();return;
-      }
-    }catch(e){}
-    clearLS();
-  }
+  // Affiche le lobby immédiatement, sans attendre Firebase
   showOnly('lobby-screen');
+  setStatus('Connexion...', false);
+  try {
+    const saved = loadLS();
+    if(saved?.roomId){
+      const snap = await get(ref(db,`fa2/${saved.roomId}`));
+      if(snap.exists() && snap.val().players?.[saved.myId]){
+        roomId=saved.roomId; myId=saved.myId; myName=saved.myName; isHost=saved.isHost;
+        setStatus('Système en ligne', true);
+        toast('Session restaurée');
+        attachListener();
+        return;
+      }
+      clearLS();
+    }
+    setStatus('Système en ligne', true);
+  } catch(e) {
+    setStatus('Hors ligne — vérifie ta connexion', false, true);
+  }
 }
-
 setTimeout(async()=>{
   try{const s=await get(ref(db,'fa2'));if(!s.exists())return;const now=Date.now();s.forEach(c=>{if(c.val().createdAt&&now-c.val().createdAt>7200000)remove(ref(db,`fa2/${c.key}`)).catch(()=>{});});}catch(e){}
 },5000);
